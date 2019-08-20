@@ -1,5 +1,5 @@
 import keras
-from setup import batch_size, epochs, num_classes, saveDir
+from setup import batch_size, epochs, num_classes, saveDir, train
 from keras.datasets import cifar100
 from utils import crop_image, showOrigNoisy, showOrigNoisyRec
 from Autoencoder import Autoencoder
@@ -16,6 +16,8 @@ x_test /= 255
 print('x_train shape:', x_train.shape)
 print(x_train.shape[0])
 print(x_test.shape[0])
+from tensorflow.python.client import device_lib
+print(device_lib.list_local_devices())
 
 # divide entre teste e validation
 x_val = x_test[:7000]
@@ -38,6 +40,15 @@ x_val_noisy = np.clip(x_val_noisy, 0., 1.)
 ae = Autoencoder()
 
 ae.compile()
-ae.train(x_train_noisy, x_train, x_val_noisy, x_val)
+if train:
+    ae.train(x_train_noisy, x_train, x_val_noisy, x_val)
 
 score = ae.evaluate(x_test_noisy, x_test)
+print(score)
+
+c10test = ae.predict(x_test_noisy)
+c10val = ae.predict(x_val_noisy)
+
+print("c10test: {0}\nc10val: {1}".format(np.average(c10test), np.average(c10val)))
+
+showOrigNoisyRec(x_test, x_test_noisy, c10test)

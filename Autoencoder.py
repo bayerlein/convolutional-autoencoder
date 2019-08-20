@@ -42,16 +42,22 @@ class Autoencoder:
 
         self.model = Model(self.input_img, self.decoded)
 
+        # carrega pesos
+        try:
+            self.model.load_weights(saveDir + "AutoEncoder_pesos.02-0.01-0.01.hdf5")
+            print(" ######## PESOS CARREGADOS ######## ")
+        except:
+            print("NÃO EXISTE PESOS NA PASTA DEFINIDA\n")
+            print(saveDir + "AutoEncoder_pesos.02-0.01-0.01.hdf5")
+
     def compile(self):
         self.model.compile(optimizer='adam', loss='mean_squared_error', metrics=['accuracy'])
 
     def train(self, x_train, target, x_val, target_val):
         es_cb = EarlyStopping(monitor='val_loss', patience=2, verbose=1, mode='auto')
-        chkpt = saveDir + 'AutoEncoder_pesos.{epoch:02d}-{loss:.2f}-{val_loss:.2f}.hdf5'
+        chkpt = saveDir + 'AutoEncoder_pesos.hdf5'
         cp_cb = ModelCheckpoint(filepath = chkpt, monitor='val_loss', verbose=1, save_best_only=True, mode='auto')
 
-        # carrega pesos
-        # model.load_weights(saveDir + "AutoEncoder_pesos.03-0.57-0.57.hdf5")
         self.history = self.model.fit(x_train, target,
                     batch_size=batch_size,
                     epochs=epochs,
