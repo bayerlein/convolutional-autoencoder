@@ -1,9 +1,9 @@
 import keras
 from setup import batch_size, epochs, num_classes, saveDir
 from keras.datasets import cifar100
-from utils import crop_image
+from utils import crop_image, showOrigNoisy, showOrigNoisyRec
 from Autoencoder import Autoencoder
-
+import numpy as np
 
 (x_train, y_train), (x_test, y_test) = cifar100.load_data()
 
@@ -31,3 +31,13 @@ x_val_noisy = crop_image(x_val, cropx, cropy)
 x_train_noisy = np.clip(x_train_noisy, 0., 1.)
 x_test_noisy = np.clip(x_test_noisy, 0., 1.)
 x_val_noisy = np.clip(x_val_noisy, 0., 1.)
+
+
+#showOrigNoisy(x_train, x_train_noisy)
+
+ae = Autoencoder()
+
+ae.compile()
+ae.train(x_train_noisy, x_train, x_val_noisy, x_val)
+
+score = ae.evaluate(x_test_noisy, x_test)

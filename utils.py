@@ -1,5 +1,6 @@
 # faz um recorte com tamanho cropx e cropy em uma imagem
 def crop_image(img_np_array,cropx,cropy):
+    import numpy as np
     img_np_array_copy = np.copy(img_np_array)
     for img in img_np_array_copy:
       
