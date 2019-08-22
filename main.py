@@ -16,8 +16,6 @@ x_test /= 255
 print('x_train shape:', x_train.shape)
 print(x_train.shape[0])
 print(x_test.shape[0])
-from tensorflow.python.client import device_lib
-print(device_lib.list_local_devices())
 
 # divide entre teste e validation
 x_val = x_test[:7000]

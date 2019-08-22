@@ -44,11 +44,11 @@ class Autoencoder:
 
         # carrega pesos
         try:
-            self.model.load_weights(saveDir + "AutoEncoder_pesos.02-0.01-0.01.hdf5")
+            self.model.load_weights(saveDir + "AutoEncoder_pesos.hdf5")
             print(" ######## PESOS CARREGADOS ######## ")
         except:
             print("NÃO EXISTE PESOS NA PASTA DEFINIDA\n")
-            print(saveDir + "AutoEncoder_pesos.02-0.01-0.01.hdf5")
+            print(saveDir + "AutoEncoder_pesos.hdf5")
 
     def compile(self):
         self.model.compile(optimizer='adam', loss='mean_squared_error', metrics=['accuracy'])

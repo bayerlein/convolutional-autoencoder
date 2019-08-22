@@ -8,6 +8,6 @@ batch_size = 256
 num_classes = 10
 epochs = 100
 saveDir = "./pesos/"
-train = False
+train = True
 if not os.path.isdir(saveDir):
     os.makedirs(saveDir)
