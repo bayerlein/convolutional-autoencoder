@@ -55,3 +55,17 @@ def showOrigNoisyRec(orig, noise, denoise, num=10):
         ax.get_xaxis().set_visible(False)
         ax.get_yaxis().set_visible(False)
     plt.show()
+
+# funcao de similiaridade
+# TODO - validar como usar no modelo
+'''
+    Funcao compara e retorna a semelhança entre duas imagens (y_true e y_pred)
+'''
+def ssim_loss(y_true, y_pred):
+    import tensorflow as tf
+    from skimage.measure import compare_ssim as ssim
+    import keras.backend as K    
+
+    _ssim = tf.image.ssim(y_true, y_pred, max_val=255, filter_size=11,
+                          filter_sigma=1.5, k1=0.01, k2=0.03)
+    return tf.reduce_mean((1 - _ssim)/2)

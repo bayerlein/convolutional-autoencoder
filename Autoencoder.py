@@ -8,68 +8,59 @@ from setup import batch_size, epochs, kerasBKED, num_classes, saveDir
 
 class Autoencoder:
     def __init__(self):
-        self.input_img = Input(shape=(32, 32, 3))
-        x = Dropout(0.5)
-        x = Conv2D(64, (3, 3), padding='same')(self.input_img)
-        x = BatchNormalization()(x)
-        x = Activation('relu')(x)
-        x = MaxPooling2D((2, 2), padding='same')(x)
-        x = Conv2D(32, (3, 3), padding='same')(x)
-        x = BatchNormalization()(x)
-        x = Activation('relu')(x)
-        x = MaxPooling2D((2, 2), padding='same')(x)
-        x = Conv2D(16, (3, 3), padding='same')(x)
-        x = BatchNormalization()(x)
-        x = Activation('relu')(x)
-        self.encoded = MaxPooling2D((2, 2), padding='same')(x)
+        self.img_rows = 32
+        self.img_cols = 32
+        self.channels = 3
+        self.img_shape = (self.img_rows, self.img_cols, self.channels)
+        
+        optimizer = Adam(lr=0.001)
+        
+        self.autoencoder = self.cria_modelo()
+        self.carrega_pesos()
 
-        x = Dropout(0.5)
-        x = Conv2D(16, (3, 3), padding='same')(self.encoded)
-        x = BatchNormalization()(x)
-        x = Activation('relu')(x)
-        x = UpSampling2D((2, 2))(x)
-        x = Conv2D(32, (3, 3), padding='same')(x)
-        x = BatchNormalization()(x)
-        x = Activation('relu')(x)
-        x = UpSampling2D((2, 2))(x)
-        x = Conv2D(64, (3, 3), padding='same')(x)
-        x = BatchNormalization()(x)
-        x = Activation('relu')(x)
-        x = UpSampling2D((2, 2))(x)
-        x = Conv2D(3, (3, 3), padding='same')(x)
-        x = BatchNormalization()(x)
-        self.decoded = Activation('sigmoid')(x)
+        self.autoencoder.compile(loss='mse', optimizer=optimizer)
+        self.autoencoder.summary()
+    def cria_modelo(self):
+        entrada = Input(shape=self.img_shape)
+        
+        # encoder
+        h = Conv2D(64, (5, 5), activation='relu', padding='same')(entrada)
+        h = MaxPooling2D((2, 2), padding='same')(h)
+        h = Conv2D(64, (5, 5), activation='relu', padding='same')(h)
+        h = MaxPooling2D((2, 2), padding='same')(h)
+        h = Dense(32)(h)
+        
+        # decoder
+        h = UpSampling2D((2, 2))(h)
+        h = Conv2D(64, (5, 5), activation='relu', padding='same')(h)
+        h = UpSampling2D((2, 2))(h)
+        saida = Conv2D(3, (5, 5), activation='sigmoid', padding='same')(h)
+        
+        return Model(entrada, saida)
+    def treina_modelo(self, x_train, y_train, x_val, y_val, epochs=epochs, batch_size=batch_size):
+        caminho_diretorio = saveDir + 'AutoEncoder_pesos.hdf5'
+        salva_pesos = ModelCheckpoint(filepath = caminho_diretorio, monitor='val_loss', verbose=1, save_best_only=True, mode='auto')
+        
+        parada = EarlyStopping(monitor='val_loss',
+                                       min_delta=0,
+                                       patience=5,
+                                       verbose=1, 
+                                       mode='auto')
+        history = self.autoencoder.fit(x_train, y_train,
+                                             batch_size=batch_size,
+                                             epochs=epochs,
+                                             validation_data=(x_val, y_val),
+                                             callbacks=[parada, salva_pesos])
 
-        self.model = Model(self.input_img, self.decoded)
-
-        # carrega pesos
+    def prever(self, x_test):
+        preds = self.autoencoder.predict(x_test)
+        return preds
+    
+    def carrega_pesos(self):
         try:
-            self.model.load_weights(saveDir + "AutoEncoder_pesos.hdf5")
+            self.autoencoder.load_weights(saveDir + "AutoEncoder_pesos.hdf5")
             print(" ######## PESOS CARREGADOS ######## ")
-        except:
+        except Exception as e:
             print("NÃO EXISTE PESOS NA PASTA DEFINIDA\n")
+            print(str(e))
             print(saveDir + "AutoEncoder_pesos.hdf5")
-
-    def compile(self):
-        self.model.compile(optimizer='adam', loss='mean_squared_error', metrics=['accuracy'])
-
-    def train(self, x_train, target, x_val, target_val):
-        es_cb = EarlyStopping(monitor='val_loss', patience=2, verbose=1, mode='auto')
-        chkpt = saveDir + 'AutoEncoder_pesos.hdf5'
-        cp_cb = ModelCheckpoint(filepath = chkpt, monitor='val_loss', verbose=1, save_best_only=True, mode='auto')
-
-        self.history = self.model.fit(x_train, target,
-                    batch_size=batch_size,
-                    epochs=epochs,
-                    verbose=1,
-                    validation_data=(x_val, target_val),
-                    callbacks=[es_cb, cp_cb],
-                    shuffle=True)
-        return self.history
-
-    def evaluate(self, x_test, x_test_target):
-        score = self.model.evaluate(x_test, x_test_target, verbose=1)
-        return score
-
-    def predict(self, test):
-        return self.model.predict(test)

@@ -37,15 +37,12 @@ x_val_noisy = np.clip(x_val_noisy, 0., 1.)
 
 ae = Autoencoder()
 
-ae.compile()
 if train:
-    ae.train(x_train_noisy, x_train, x_val_noisy, x_val)
+    ae.treina_modelo(x_train_noisy, x_train, x_val_noisy, x_val)
 
-score = ae.evaluate(x_test_noisy, x_test)
-print(score)
 
-c10test = ae.predict(x_test_noisy)
-c10val = ae.predict(x_val_noisy)
+c10test = ae.prever(x_test_noisy)
+c10val = ae.prever(x_val_noisy)
 
 print("c10test: {0}\nc10val: {1}".format(np.average(c10test), np.average(c10val)))
 
