@@ -5,6 +5,7 @@ from keras.models import Model
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 from keras.optimizers import Adam
 from setup import batch_size, epochs, kerasBKED, num_classes, saveDir
+from utils import ssim_loss
 
 class Autoencoder:
     def __init__(self):
@@ -18,7 +19,7 @@ class Autoencoder:
         self.autoencoder = self.cria_modelo()
         self.carrega_pesos()
 
-        self.autoencoder.compile(loss='mse', optimizer=optimizer)
+        self.autoencoder.compile(loss=ssim_loss, optimizer=optimizer)
         self.autoencoder.summary()
     def cria_modelo(self):
         entrada = Input(shape=self.img_shape)
