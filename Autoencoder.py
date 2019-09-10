@@ -1,45 +1,65 @@
-import keras
+import tensorflow.keras
 import setup
-from keras.layers import Input, Dense, Conv2D, MaxPooling2D, Conv3D, MaxPooling3D, UpSampling2D,UpSampling3D, BatchNormalization, Activation, Dropout
-from keras.models import Model
-from keras.callbacks import EarlyStopping, ModelCheckpoint
-from keras.optimizers import Adam
+import tensorflow.keras.layers as L
+#from tensorflow.keras.layers import Reshape, Conv2DTranspose, Flatten, Input, Dense, Conv2D, MaxPooling2D, Conv3D, MaxPooling3D, UpSampling2D,UpSampling3D, BatchNormalization, Activation, Dropout
+from tensorflow.keras.models import Model
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
+from tensorflow.keras.optimizers import Adam
 from setup import batch_size, epochs, kerasBKED, num_classes, saveDir
-from utils import ssim_loss
 
 class Autoencoder:
     def __init__(self):
-        self.img_rows = 32
-        self.img_cols = 32
+        from tensorflow.keras.utils import plot_model
+        self.img_rows = 144
+        self.img_cols = 144
         self.channels = 3
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
         
         optimizer = Adam(lr=0.001)
         
-        self.autoencoder = self.cria_modelo()
+        encoder, decoder = self.cria_modelo()
+
+        entrada = L.Input(self.img_shape)
+        espaco_latente = encoder(entrada)
+        reconstrucao = decoder(espaco_latente)
+
+        self.autoencoder = tensorflow.keras.models.Model(inputs=entrada, outputs=reconstrucao)
+
         self.carrega_pesos()
 
-        self.autoencoder.compile(loss=ssim_loss, optimizer=optimizer)
-        self.autoencoder.summary()
+        self.autoencoder.compile(loss='mse', optimizer=optimizer, metrics=['accuracy'])
+        plot_model(self.autoencoder.layers[1], to_file='./Testes/Teste2/encoder.png', show_shapes=True, show_layer_names=True)
+        plot_model(self.autoencoder.layers[2], to_file='./Testes/Teste2/decoder.png', show_shapes=True, show_layer_names=True)
     def cria_modelo(self):
-        entrada = Input(shape=self.img_shape)
         
         # encoder
-        h = Conv2D(64, (5, 5), activation='relu', padding='same')(entrada)
-        h = MaxPooling2D((2, 2), padding='same')(h)
-        h = Conv2D(64, (5, 5), activation='relu', padding='same')(h)
-        h = MaxPooling2D((2, 2), padding='same')(h)
-        h = Dense(32)(h)
-        
+        encoder = tensorflow.keras.models.Sequential()
+        encoder.add(L.InputLayer(self.img_shape))
+
+        encoder.add(L.Conv2D(filters=32,kernel_size=(3,3),padding='same',activation='relu'))
+        encoder.add(L.MaxPooling2D(pool_size=(2,2)))
+        encoder.add(L.Conv2D(filters=64,kernel_size=(3,3),padding='same',activation='relu'))
+        encoder.add(L.MaxPooling2D(pool_size=(2,2)))
+        encoder.add(L.Conv2D(filters=128,kernel_size=(3,3),padding='same',activation='relu'))
+        encoder.add(L.MaxPooling2D(pool_size=(2,2)))
+        encoder.add(L.Conv2D(filters=256,kernel_size=(3,3),padding='same',activation='relu'))
+        encoder.add(L.MaxPooling2D(pool_size=(2,2)))
+        encoder.add(L.Flatten())                  
+        encoder.add(L.Dense(32))           
+
         # decoder
-        h = UpSampling2D((2, 2))(h)
-        h = Conv2D(64, (5, 5), activation='relu', padding='same')(h)
-        h = UpSampling2D((2, 2))(h)
-        saida = Conv2D(3, (5, 5), activation='sigmoid', padding='same')(h)
+        decoder = tensorflow.keras.models.Sequential()
+        decoder.add(L.InputLayer((32,)))
+        decoder.add(L.Dense(9*9*256))
+        decoder.add(L.Reshape((9,9,256)))
+        decoder.add(L.Conv2DTranspose(filters=128, kernel_size=(3, 3), strides=2, activation='relu', padding='same'))
+        decoder.add(L.Conv2DTranspose(filters=64, kernel_size=(3, 3), strides=2, activation='relu', padding='same'))
+        decoder.add(L.Conv2DTranspose(filters=32, kernel_size=(3, 3), strides=2, activation='relu', padding='same'))
+        decoder.add(L.Conv2DTranspose(filters=3, kernel_size=(3, 3), strides=2, activation=None, padding='same'))
         
-        return Model(entrada, saida)
-    def treina_modelo(self, x_train, y_train, x_val, y_val, epochs=epochs, batch_size=batch_size):
-        caminho_diretorio = saveDir + 'AutoEncoder_pesos.hdf5'
+        return encoder, decoder
+    def treina_modelo(self, x_train, y_train, x_val, y_val, epochs=epochs, batch_size=batch_size):        
+        caminho_diretorio = saveDir + 'AutoEncoder_pesos_caltech101_teste2.hdf5'
         salva_pesos = ModelCheckpoint(filepath = caminho_diretorio, monitor='val_loss', verbose=1, save_best_only=True, mode='auto')
         
         parada = EarlyStopping(monitor='val_loss',
@@ -47,7 +67,7 @@ class Autoencoder:
                                        patience=5,
                                        verbose=1, 
                                        mode='auto')
-        history = self.autoencoder.fit(x_train, y_train,
+        self.history = self.autoencoder.fit(x_train, y_train,
                                              batch_size=batch_size,
                                              epochs=epochs,
                                              validation_data=(x_val, y_val),
@@ -59,7 +79,7 @@ class Autoencoder:
     
     def carrega_pesos(self):
         try:
-            self.autoencoder.load_weights(saveDir + "AutoEncoder_pesos.hdf5")
+            self.autoencoder.load_weights(saveDir + "AutoEncoder_pesos_caltech101_teste2.hdf5")
             print(" ######## PESOS CARREGADOS ######## ")
         except Exception as e:
             print("NÃO EXISTE PESOS NA PASTA DEFINIDA\n")

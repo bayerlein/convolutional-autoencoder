@@ -1,3 +1,0 @@
-# convolutional-autoencoder
-
-## UNDER CONSTRUCTION
